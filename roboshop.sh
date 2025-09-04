@@ -20,23 +20,23 @@ do
     fi
     echo "$instance IP address: $IP"
     
-    #AWS cli to create or update route 53 records
-    # aws route53 change-resource-record-sets \
-    # --hosted-zone-id $ZONE_ID \
-    # --change-batch '
-    # {
-    #     "Comment": "Creating or Updating a record set for cognito endpoint"
-    #     ,"Changes": [{
-    #     "Action"              : "UPSERT"
-    #     ,"ResourceRecordSet"  : {
-    #         "Name"              : "'$instance'.'$DOMAIN_NAME'"
-    #         ,"Type"             : "A"
-    #         ,"TTL"              : 1
-    #         ,"ResourceRecords"  : [{
-    #             "Value"         : "'$IP'"
-    #         }]
-    #     }
-    #     }]
-    # }
-    # '
+    AWS cli to create or update route 53 records
+    aws route53 change-resource-record-sets \
+    --hosted-zone-id $ZONE_ID \
+    --change-batch '
+    {
+        "Comment": "Creating or Updating a record set for cognito endpoint"
+        ,"Changes": [{
+        "Action"              : "UPSERT"
+        ,"ResourceRecordSet"  : {
+            "Name"              : "'$instance'.'$DOMAIN_NAME'"
+            ,"Type"             : "A"
+            ,"TTL"              : 1
+            ,"ResourceRecords"  : [{
+                "Value"         : "'$IP'"
+            }]
+        }
+        }]
+    }
+    '
 done 
