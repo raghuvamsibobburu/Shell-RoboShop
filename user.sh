@@ -34,27 +34,36 @@ VALIDATE(){
     fi
 }
 
+dnf module disable nodejs -y
+VALIDATE $? "Disabling nodeJs"
 
-dnf module disable redis -y &>>$LOG_FILE
-VALIDATE $? "Disabling Mongodb"
+dnf module enable nodejs:20 -y
+VALIDATE $? "Enabling nodeJs version:20"
 
-dnf module enable redis:7 -y &>>$LOG_FILE
-VALIDATE $? "Enabling redis"
+dnf install nodejs -y
+VALIDATE $? "Installing nodeJs"
 
-dnf install redis -y  &>>$LOG_FILE
-VALIDATE $? "Installing redis"
+useradd --system --home /app --shell /sbin/nologin --comment "roboshop system user" roboshop
+VALIDATE $? "Creating roboshop system user"
 
-sed -i 's/127.0.0.1/0.0.0.0/g' /etc/redis/redis.conf
-VALIDATE $? "Editing redis conf file for remote connections"
+mkdir /app 
+VALIDATE $? "Creating app directory"
 
-sed -i 's/protected-mode yes/protected-mode no/g' /etc/redis/redis.conf
-VALIDATE $? "updating redis conf file for remote connections"
+curl -L -o /tmp/user.zip https://roboshop-artifacts.s3.amazonaws.com/user-v3.zip 
+VALIDATE $? "Downloading user"
 
-systemctl enable redis
-VALIDATE $? "Enabled redis" 
+rm -rf /app/*
+cd /app 
+unzip /tmp/user.zip
+VALIDATE $? "unzipping user"
 
-systemctl start redis 
-VALIDATE $? "Started redis"
+npm install
+VALIDATE $? "Installing Dependencies"
+
+systemctl daemon-reload
+systemctl enable user 
+systemctl start user
+VALIDATE $? "Starting user"
 
 
 
