@@ -43,8 +43,14 @@ VALIDATE $? "Enabling nodeJs version:20"
 dnf install nodejs -y &>>$LOG_FILE
 VALIDATE $? "Installing nodejs:20"
 
-useradd --system --home /app --shell /sbin/nologin --comment "roboshop system user" roboshop &>>$LOG_FILE
-VALIDATE $? "Creating roboshop system user"
+id roboshop
+if [ $? -ne 0 ]
+then
+    useradd --system --home /app --shell /sbin/nologin --comment "roboshop system user" roboshop &>>$LOG_FILE
+    VALIDATE $? "Creating roboshop system user"
+else
+    echo -e "System user roboshop already created ... $Y SKIPPING $N"
+fi
 
 mkdir -p /app 
 VALIDATE $? "Creating app directory"
@@ -68,10 +74,15 @@ systemctl enable catalogue &>>$LOG_FILE
 systemctl start catalogue 
 VALIDATE $? "Starting catalogue"
 
-cp $SCRIPT_DIR/mongo.repo /etc/yum.repos.d/mongo.repo 
+cp $SCRIPT_DIR/mongo.repo /etc/yum.repos.d/mongodb.repo 
 dnf install mongodb-mongosh -y &>>$LOG_FILE
 VALIDATE $? "Installing MongoDB client"
 
-mongosh --host mongodb.buyarobot.site </app/db/master-data.js &>>$LOG_FILE
-VALIDATE $? "Loading Data into MongoDB"
-
+STATUS=$(mongosh --host mongodb.daws84s.site --eval 'db.getMongo().getDBNames().indexOf("catalogue")')
+if [ $STATUS -lt 0 ]
+then
+    mongosh --host mongodb.daws84s.site </app/db/master-data.js &>>$LOG_FILE
+    VALIDATE $? "Loading data into MongoDB"
+else
+    echo -e "Data is already loaded ... $Y SKIPPING $N"
+fi
