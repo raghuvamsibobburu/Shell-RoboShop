@@ -35,18 +35,18 @@ VALIDATE(){
 }
 
 dnf module disable nodejs -y &>>$LOG_FILE
-VALIDATE $? "Disabling nodeJs"
+VALIDATE $? "Disabling default nodejs"
 
 dnf module enable nodejs:20 -y &>>$LOG_FILE
 VALIDATE $? "Enabling nodeJs version:20"
 
 dnf install nodejs -y &>>$LOG_FILE
-VALIDATE $? "Installing nodeJs"
+VALIDATE $? "Installing nodejs:20"
 
 useradd --system --home /app --shell /sbin/nologin --comment "roboshop system user" roboshop &>>$LOG_FILE
 VALIDATE $? "Creating roboshop system user"
 
-mkdir /app 
+mkdir -p /app 
 VALIDATE $? "Creating app directory"
 
 curl -o /tmp/catalogue.zip https://roboshop-artifacts.s3.amazonaws.com/catalogue-v3.zip &>>$LOG_FILE
@@ -68,18 +68,10 @@ systemctl enable catalogue &>>$LOG_FILE
 systemctl start catalogue 
 VALIDATE $? "Starting catalogue"
 
-cp $SCRIPT_DIR/mongo.repo /etc/yum.repos.d/mongo.repo &>>$LOG_FILE
+cp $SCRIPT_DIR/mongo.repo /etc/yum.repos.d/mongo.repo 
 dnf install mongodb-mongosh -y &>>$LOG_FILE
 VALIDATE $? "Installing MongoDB client"
 
 mongosh --host mongodb.buyarobot.site </app/db/master-data.js &>>$LOG_FILE
 VALIDATE $? "Loading Data into MongoDB"
-
-
-
-
-
-
-
-
 
