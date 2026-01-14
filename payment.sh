@@ -36,46 +36,44 @@ VALIDATE(){
     fi
 }
 
-dnf module disable nodejs -y
-VALIDATE $? "Disabling nodeJs"
-
-dnf module enable nodejs:20 -y
-VALIDATE $? "Enabling nodeJs version:20"
-
-dnf install nodejs -y
-VALIDATE $? "Installing nodeJs"
-
+dnf install python3 gcc python3-devel -y &>>$LOG_FILE
+VALIDATE $? "Installing Python3"
 
 id roboshop
-if [ $? -ne 0]
+if [ $? -ne 0 ]
 then
-    useradd --system --home /app --shell /sbin/nologin --comment "roboshop system user" roboshop
+    useradd --system --home /app --shell /sbin/nologin --comment "roboshop system user" roboshop &>>$LOG_FILE
     VALIDATE $? "Creating roboshop system user"
 else
-    echo -e "User already existed...$YELLOW Skipping $RESET"
+    echo -e "Roboshop system user is already existed... $YELLOW Skipping $RESET"
 fi
 
 mkdir -p /app 
 VALIDATE $? "Creating app directory"
 
-curl -o /tmp/user.zip https://roboshop-artifacts.s3.amazonaws.com/user-v3.zip 
-VALIDATE $? "Downloading user"
+curl -o /tmp/payment.zip https://roboshop-artifacts.s3.amazonaws.com/payment-v3.zip &>>$LOG_FILE
+VALIDATE $? "Downloading the payment zip file"
 
 rm -rf /app/*
 cd /app 
-unzip /tmp/user.zip &>>$LOG_FILE
-VALIDATE $? "unzipping user"
+unzip /tmp/payment.zip &>>$LOG_FILE
+VALIDATE $? "Unzipping the file"
 
-npm install
+
+pip3 install -r requirements.txt &>>$LOG_FILE
 VALIDATE $? "Installing Dependencies"
 
-cp $SCRIPT_DIR/user.service /etc/systemd/system/user.service
-VALIDATE $? "Copying User service"
+cp $SCRIPT_DIR/payment.service /etc/systemd/system/payment.service &>>$LOG_FILE
+VALIDATE $? "Copying the payment service"
 
-systemctl daemon-reload
-systemctl enable user 
-systemctl start user
-VALIDATE $? "Starting user"
+systemctl daemon-reload &>>$LOG_FILE
+VALIDATE $? "Reload system service"
+
+systemctl enable payment &>>$LOG_FILE
+VALIDATE $? "Payment Enabled"
+
+systemctl start payment &>>$LOG_FILE
+VALIDATE $? "Started Payment"
 
 END_TIME=$(date+%s)
 TOTAL_TIME=$(( $END_TIME - $START_TIME ))

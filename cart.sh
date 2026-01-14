@@ -1,5 +1,7 @@
 #!/bin/bash
 
+START_TIME=$(date +%s)
+
 USERID=$(id -u)
 
 RED="\e[31m"
@@ -9,7 +11,7 @@ RESET="\e[0m"
 LOGS_FOLDER="/var/log/shellscript-logs"
 SCRIPT_NAME=$(echo $0 | cut -d "." -f1)
 LOG_FILE="$LOGS_FOLDER/$SCRIPT_NAME.log"
-PACKAGES=("mysql" "python3" "nginx" "httpd" "" "")
+SCRIPT_DIR=$PWD
 
 mkdir -p $LOGS_FOLDER
 echo "Script started executing at $(date)" | tee -a $LOG_FILE
@@ -34,33 +36,48 @@ VALIDATE(){
     fi
 }
 
-dnf module disable nodejs -y
+dnf module disable nodejs -y &>>$LOG_FILE
 VALIDATE $? "Disabling nodeJs"
 
-dnf module enable nodejs:20 -y
+dnf module enable nodejs:20 -y &>>$LOG_FILE
 VALIDATE $? "Enabling nodeJs version:20"
 
-dnf install nodejs -y
+dnf install nodejs -y &>>$LOG_FILE
 VALIDATE $? "Installing nodeJs"
 
-useradd --system --home /app --shell /sbin/nologin --comment "roboshop system user" roboshop
-VALIDATE $? "Creating roboshop system user"
 
-mkdir /app 
+id roboshop
+if [ $? -ne 0]
+then
+    useradd --system --home /app --shell /sbin/nologin --comment "roboshop system user" roboshop &>>$LOG_FILE
+    VALIDATE $? "Creating roboshop system user"
+else
+    echo "echo -e "System user roboshop already created ... $YELLOW SKIPPING $RESET"
+fi
+
+mkdir -p /app 
 VALIDATE $? "Creating app directory"
 
-curl -L -o /tmp/cart.zip https://roboshop-artifacts.s3.amazonaws.com/cart-v3.zip
+curl -o /tmp/cart.zip https://roboshop-artifacts.s3.amazonaws.com/cart-v3.zip &>>$LOG_FILE
 VALIDATE $? "Downloading cart"
 
 rm -rf /app/*
 cd /app 
-unzip /tmp/cart.zip
+unzip /tmp/cart.zip &>>$LOG_FILE
 VALIDATE $? "unzipping cart"
 
-npm install
+npm install &>>$LOG_FILE
 VALIDATE $? "Installing Dependencies"
 
-systemctl daemon-reload
-systemctl enable cart 
+cp $SCRIPT_DIR/cart.service /etc/systemd/system/cart.service 
+VALIDATE $? "Copying cart service"
+
+systemctl daemon-reload &>>$LOG_FILE
+systemctl enable cart  &>>$LOG_FILE
 systemctl start cart
 VALIDATE $? "Starting cart"
+
+END_TIME=$(date +%s)
+TOTAL_TIME=$(( $END_TIME - $START_TIME ))
+
+echo -e "Script exection completed successfully, $YELLOW time taken: $TOTAL_TIME seconds $RESET" | tee -a $LOG_FILE

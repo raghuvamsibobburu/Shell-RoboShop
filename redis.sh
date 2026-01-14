@@ -1,5 +1,7 @@
 #!/bin/bash
 
+START_TIME=$(date+%s)
+
 USERID=$(id -u)
 
 RED="\e[31m"
@@ -9,7 +11,7 @@ RESET="\e[0m"
 LOGS_FOLDER="/var/log/shellscript-logs"
 SCRIPT_NAME=$(echo $0 | cut -d "." -f1)
 LOG_FILE="$LOGS_FOLDER/$SCRIPT_NAME.log"
-PACKAGES=("mysql" "python3" "nginx" "httpd" "" "")
+SCRIPT_DIR=$PWD
 
 mkdir -p $LOGS_FOLDER
 echo "Script started executing at $(date)" | tee -a $LOG_FILE
@@ -36,7 +38,7 @@ VALIDATE(){
 
 
 dnf module disable redis -y &>>$LOG_FILE
-VALIDATE $? "Disabling Mongodb"
+VALIDATE $? "Disabling redis"
 
 dnf module enable redis:7 -y &>>$LOG_FILE
 VALIDATE $? "Enabling redis"
@@ -44,18 +46,19 @@ VALIDATE $? "Enabling redis"
 dnf install redis -y  &>>$LOG_FILE
 VALIDATE $? "Installing redis"
 
-sed -i 's/127.0.0.1/0.0.0.0/g' /etc/redis/redis.conf
-VALIDATE $? "Editing redis conf file for remote connections"
+sed -i -e 's/127.0.0.1/0.0.0.0/g' -e '/protected-mode/ c protected-mode no' /etc/redis/redis.conf
+VALIDATE $? "Edited redis.conf to accept remote connections"
 
-sed -i 's/protected-mode yes/protected-mode no/g' /etc/redis/redis.conf
-VALIDATE $? "updating redis conf file for remote connections"
-
-systemctl enable redis
+systemctl enable redis &>>$LOG_FILE
 VALIDATE $? "Enabled redis" 
 
-systemctl start redis 
+systemctl start redis &>>$LOG_FILE
 VALIDATE $? "Started redis"
 
+END_TIME=$(date+%s)
+TOTAL_TIME=$(( $END_TIME - $START_TIME ))
+
+echo -e "Script exection completed successfully, $YELLOW time taken: $TOTAL_TIME seconds $RESET" | tee -a $LOG_FILE
 
 
 

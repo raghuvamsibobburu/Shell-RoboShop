@@ -1,5 +1,7 @@
 #!/bin/bash
 
+START_TIME=$(date+%s)
+
 USERID=$(id -u)
 
 RED="\e[31m"
@@ -9,7 +11,7 @@ RESET="\e[0m"
 LOGS_FOLDER="/var/log/shellscript-logs"
 SCRIPT_NAME=$(echo $0 | cut -d "." -f1)
 LOG_FILE="$LOGS_FOLDER/$SCRIPT_NAME.log"
-PACKAGES=("mysql" "python3" "nginx" "httpd" "" "")
+SCRIPT_DIR=$PWD
 
 mkdir -p $LOGS_FOLDER
 echo "Script started executing at $(date)" | tee -a $LOG_FILE
@@ -23,6 +25,8 @@ else
     echo "Your running with root access" | tee -a $LOG_FILE
 fi
 
+echo "Please enter root password to setup"
+read -s MYSQL_ROOT_PASSWORD
 # validate functions takes input as exit status, what command they tried to install
 VALIDATE(){
     if [ $1 -eq 0 ]
@@ -34,11 +38,19 @@ VALIDATE(){
     fi
 }
 
-dnf install mysql-server -y
-VALIDATE $? "Disabling nodeJs"
+dnf install mysql-server -y &>>LOG_FILE
+VALIDATE $? "Installing MySQL server"
 
-systemctl enable mysqld
-VALIDATE $? "Enabling nodeJs version:20"
+systemctl enable mysqld &>>LOG_FILE
+VALIDATE $? "Enabling MySQL"
 
 systemctl start mysqld
-VALIDATE $? "Installing nodeJs"
+VALIDATE $? "Starting Mysql"
+
+mysql_secure_installation --set-root-pass $MYSQL_ROOT_PASSWORD &>>LOG_FILE
+VALIDATE $? "Setting MySQL root password"
+
+END_TIME=$(date+%s)
+TOTAL_TIME=$(( $END_TIME - $START_TIME ))
+
+echo -e "Script exection completed successfully, $YELLOW time taken: $TOTAL_TIME seconds $RESET" | tee -a $LOG_FILE
